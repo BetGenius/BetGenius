@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/betgenius/.betgenius" ]; then
+	BETGENIUSD_DEFAULT_DATADIR="/var/lib/betgenius/.betgenius"
+else
+	BETGENIUSD_DEFAULT_DATADIR="/var/lib/betgeniusd"
+fi
+
+BETGENIUSD_CONFIGFILE=${BETGENIUSD_CONFIGFILE:-/etc/betgenius/betgenius.conf}
+BETGENIUSD_PIDDIR=${BETGENIUSD_PIDDIR:-/var/run/betgeniusd}
+BETGENIUSD_PIDFILE=${BETGENIUSD_PIDFILE:-${BETGENIUSD_PIDDIR}/betgeniusd.pid}
+BETGENIUSD_DATADIR=${BETGENIUSD_DATADIR:-${BETGENIUSD_DEFAULT_DATADIR}}
+BETGENIUSD_USER=${BETGENIUSD_USER:-${BETGENIUS_USER:-betgenius}}
+BETGENIUSD_GROUP=${BETGENIUSD_GROUP:-betgenius}
+BETGENIUSD_BIN=${BETGENIUSD_BIN:-/usr/bin/betgeniusd}
+BETGENIUSD_NICE=${BETGENIUSD_NICE:-${NICELEVEL:-0}}
+BETGENIUSD_OPTS="${BETGENIUSD_OPTS:-${BETGENIUS_OPTS}}"
+
+name="BetGenius Core Daemon"
+description="BetGenius cryptocurrency P2P network daemon"
+
+command="/usr/bin/betgeniusd"
+command_args="-pid=\"${BETGENIUSD_PIDFILE}\" \
+		-conf=\"${BETGENIUSD_CONFIGFILE}\" \
+		-datadir=\"${BETGENIUSD_DATADIR}\" \
+		-daemon \
+		${BETGENIUSD_OPTS}"
+
+required_files="${BETGENIUSD_CONFIGFILE}"
+start_stop_daemon_args="-u ${BETGENIUSD_USER} \
+			-N ${BETGENIUSD_NICE} -w 2000"
+pidfile="${BETGENIUSD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${BETGENIUSD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${BETGENIUSD_USER}:${BETGENIUSD_GROUP}" \
+	"${BETGENIUSD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${BETGENIUSD_USER}:${BETGENIUSD_GROUP}" \
+	"${BETGENIUSD_PIDDIR}"
+
+	checkpath -f \
+	-o "${BETGENIUSD_USER}:${BETGENIUSD_GROUP}" \
+	-m 0660 \
+	"${BETGENIUSD_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${BETGENIUSD_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${BETGENIUSD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run betgeniusd."
+		eerror "The setting must appear in ${BETGENIUSD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"BetGenius Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

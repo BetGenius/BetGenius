@@ -1,0 +1,33 @@
+# /etc/conf.d/betgeniusd: config file for /etc/init.d/betgeniusd
+
+# Config file location
+#BETGENIUSD_CONFIGFILE="/etc/betgenius/betgenius.conf"
+
+# What directory to write pidfile to?  (created and owned by $BETGENIUSD_USER)
+#BETGENIUSD_PIDDIR="/var/run/betgeniusd"
+
+# What filename to give the pidfile
+#BETGENIUSD_PIDFILE="${BETGENIUSD_PIDDIR}/betgeniusd.pid"
+
+# Where to write betgeniusd data (be mindful that the blockchain is large)
+#BETGENIUSD_DATADIR="/var/lib/betgeniusd"
+
+# User and group to own betgeniusd process
+#BETGENIUSD_USER="betgenius"
+#BETGENIUSD_GROUP="betgenius"
+
+# Path to betgeniusd executable
+#BETGENIUSD_BIN="/usr/bin/betgeniusd"
+
+# Nice value to run betgeniusd under
+#BETGENIUSD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#BETGENIUSD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for betgeniusd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+BETGENIUSD_SIGTERM_TIMEOUT=600
